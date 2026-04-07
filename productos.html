@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Productos</title>
+    <link rel="stylesheet" href="CSS/styles.css">
+</head>
+<body>
+
+<a href="menú.html" class="back-menu-btn">← Menú</a>
+
+<div class="container">
+    <div class="form">
+        <h2>Productos</h2>
+
+        <div class="input-group">
+            <label>Nombre Producto</label>
+            <input type="text" name="nombreProducto" id="nombreProducto">
+        </div>
+
+        <div class="input-group">
+            <label>Precio</label>
+            <input type="number" name="precioProducto" id="precioProducto">
+        </div>
+
+        <div class="input-group">
+            <label>Empresa</label>
+            <select name="empresaProducto" id="empresaProducto">
+                <option>Seleccionar</option>
+            </select>
+        </div>
+
+        <button id="saveProductoBtn">Guardar</button>
+
+        <hr style="margin:20px 0;">
+
+        <table border="1" width="100%">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Empresa</th>
+                </tr>
+            </thead>
+            <tbody id="productosBody"></tbody>
+        </table>
+        <p id="productosEmpty" class="link">Aún no hay productos</p>
+    </div>
+</div>
+
+<script>
+const API_URL = 'http://localhost:3000';
+const nombreInput = document.getElementById('nombreProducto');
+const precioInput = document.getElementById('precioProducto');
+const empresaSelect = document.getElementById('empresaProducto');
+const saveBtn = document.getElementById('saveProductoBtn');
+const body = document.getElementById('productosBody');
+const empty = document.getElementById('productosEmpty');
+
+function renderProductos(rows) {
+    body.innerHTML = rows.map(r => `<tr><td>${r.name}</td><td>$${Number(r.price).toFixed(2)}</td><td>${r.company_name}</td></tr>`).join('');
+    empty.style.display = rows.length ? 'none' : 'block';
+}
+
+async function loadEmpresas() {
+    const res = await fetch(`${API_URL}/api/empresas`);
+    const rows = await res.json();
+    empresaSelect.innerHTML = '<option value="">Seleccionar</option>' + rows.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+}
+
+async function loadProductos() {
+    const res = await fetch(`${API_URL}/api/productos`);
+    const rows = await res.json();
+    renderProductos(rows);
+}
+
+saveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const payload = {
+        nombre: nombreInput.value.trim(),
+        precio: Number(precioInput.value),
+        empresaId: Number(empresaSelect.value),
+    };
+    const res = await fetch(`${API_URL}/api/productos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'No se pudo guardar producto');
+    nombreInput.value = '';
+    precioInput.value = '';
+    empresaSelect.value = '';
+    loadProductos();
+});
+
+loadEmpresas();
+loadProductos();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Empresas</title>
+    <link rel="stylesheet" href="CSS/styles.css ">
+</head>
+<body>
+
+<a href="menú.html" class="back-menu-btn">← Menú</a>
+
+<div class="container">
+    <div class="form">
+        <h2>Empresas</h2>
+
+        <div class="input-group">
+            <label>Nombre Empresa</label>
+            <input type="text" name="nombreEmpresa" id="nombreEmpresa">
+        </div>
+
+        <div class="input-group">
+            <label>NIT</label>
+            <input type="text" name="nitEmpresa" id="nitEmpresa">
+        </div>
+
+        <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" name="telefonoEmpresa" id="telefonoEmpresa">
+        </div>
+
+        <div class="input-group">
+            <label>Dirección</label>
+            <input type="text" name="direccionEmpresa" id="direccionEmpresa">
+        </div>
+
+        <button id="saveEmpresaBtn">Guardar</button>
+
+        <hr style="margin:20px 0;">
+
+        <table border="1" width="100%">
+            <thead>
+                <tr>
+                    <th>Empresa</th>
+                    <th>NIT</th>
+                    <th>Teléfono</th>
+                </tr>
+            </thead>
+            <tbody id="empresasBody"></tbody>
+        </table>
+        <p id="empresasEmpty" class="link">Aún no hay empresas</p>
+    </div>
+</div>
+
+<script>
+const API_URL = 'http://localhost:3000';
+const nombreInput = document.getElementById('nombreEmpresa');
+const nitInput = document.getElementById('nitEmpresa');
+const telefonoInput = document.getElementById('telefonoEmpresa');
+const direccionInput = document.getElementById('direccionEmpresa');
+const saveBtn = document.getElementById('saveEmpresaBtn');
+const body = document.getElementById('empresasBody');
+const empty = document.getElementById('empresasEmpty');
+
+function renderEmpresas(rows) {
+    body.innerHTML = rows.map(r => `<tr><td>${r.name}</td><td>${r.nit}</td><td>${r.phone}</td></tr>`).join('');
+    empty.style.display = rows.length ? 'none' : 'block';
+}
+
+async function loadEmpresas() {
+    const res = await fetch(`${API_URL}/api/empresas`);
+    const rows = await res.json();
+    renderEmpresas(rows);
+}
+
+saveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const payload = {
+        nombre: nombreInput.value.trim(),
+        nit: nitInput.value.trim(),
+        telefono: telefonoInput.value.trim(),
+        direccion: direccionInput.value.trim(),
+    };
+    const res = await fetch(`${API_URL}/api/empresas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'No se pudo guardar empresa');
+    nombreInput.value = '';
+    nitInput.value = '';
+    telefonoInput.value = '';
+    direccionInput.value = '';
+    loadEmpresas();
+});
+
+loadEmpresas();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pedidos</title>
+    <link rel="stylesheet" href="CSS/styles.css">
+</head>
+<body>
+
+<a href="menú.html" class="back-menu-btn">← Menú</a>
+
+<div class="container">
+    <div class="form">
+        <h2>Pedidos</h2>
+
+        <!-- SELECCIÓN -->
+        <div class="input-group">
+            <label>Cliente</label>
+            <select name="clientePedido" id="clientePedido">
+                <option>Seleccionar</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Empresa</label>
+            <select name="empresaPedido" id="empresaPedido">
+                <option>Seleccionar</option>
+            </select>
+        </div>
+
+        <!-- AGREGAR PRODUCTO -->
+        <div class="input-group">
+            <label>Producto</label>
+            <select name="productoPedido" id="productoPedido">
+                <option>Seleccionar</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Cantidad</label>
+            <input type="number" name="cantidadProducto" id="cantidadProducto">
+        </div>
+
+        <button id="agregarBtn">Agregar</button>
+
+        <hr style="margin:20px 0;">
+
+        <!-- DETALLE -->
+        <table border="1" width="100%">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody id="detalleBody"></tbody>
+        </table>
+        <p id="detalleEmpty" class="link">Aún no hay recibos</p>
+
+        <h3 id="totalLabel" style="margin-top:15px;">Total: $0.00</h3>
+
+        <button id="generarBtn" style="margin-top:10px;">Generar Pedido</button>
+    </div>
+</div>
+
+<script>
+const API_URL = 'http://localhost:3000';
+const currentUser = JSON.parse(localStorage.getItem('factulogin_user') || 'null');
+
+const clienteSelect = document.getElementById('clientePedido');
+const empresaSelect = document.getElementById('empresaPedido');
+const productoSelect = document.getElementById('productoPedido');
+const cantidadInput = document.getElementById('cantidadProducto');
+const agregarBtn = document.getElementById('agregarBtn');
+const generarBtn = document.getElementById('generarBtn');
+const detalleBody = document.getElementById('detalleBody');
+const detalleEmpty = document.getElementById('detalleEmpty');
+const totalLabel = document.getElementById('totalLabel');
+
+let productosCache = [];
+let items = [];
+
+function renderDetalle() {
+    detalleBody.innerHTML = items.map(item => `
+        <tr>
+            <td>${item.nombre}</td>
+            <td>${item.cantidad}</td>
+            <td>$${item.precio.toFixed(2)}</td>
+            <td>$${item.subtotal.toFixed(2)}</td>
+        </tr>
+    `).join('');
+    detalleEmpty.style.display = items.length ? 'none' : 'block';
+    const total = items.reduce((acc, it) => acc + it.subtotal, 0);
+    totalLabel.textContent = `Total: $${total.toFixed(2)}`;
+}
+
+async function loadOptions() {
+    const res = await fetch(`${API_URL}/api/pedidos/options`);
+    const data = await res.json();
+    productosCache = data.productos;
+
+    clienteSelect.innerHTML = '<option value="">Seleccionar</option>' +
+        data.clientes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+    empresaSelect.innerHTML = '<option value="">Seleccionar</option>' +
+        data.empresas.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+
+    productoSelect.innerHTML = '<option value="">Seleccionar</option>' +
+        data.productos.map(p => `<option value="${p.id}">${p.name} - $${Number(p.price).toFixed(2)}</option>`).join('');
+}
+
+agregarBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const productoId = Number(productoSelect.value);
+    const cantidad = Number(cantidadInput.value);
+    if (!productoId || !cantidad || cantidad <= 0) {
+        alert('Selecciona producto y cantidad válida');
+        return;
+    }
+
+    const producto = productosCache.find(p => Number(p.id) === productoId);
+    if (!producto) return alert('Producto no encontrado');
+    const precio = Number(producto.price);
+    const subtotal = precio * cantidad;
+
+    items.push({
+        productoId,
+        nombre: producto.name,
+        cantidad,
+        precio,
+        subtotal,
+    });
+
+    cantidadInput.value = '';
+    renderDetalle();
+});
+
+generarBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const clienteId = Number(clienteSelect.value);
+    const empresaId = Number(empresaSelect.value);
+
+    if (!clienteId || !empresaId) return alert('Selecciona cliente y empresa');
+    if (!items.length) return alert('Debes agregar mínimo un producto');
+
+    const payload = {
+        userId: currentUser && currentUser.id ? currentUser.id : null,
+        clienteId,
+        empresaId,
+        items: items.map(i => ({ productoId: i.productoId, cantidad: i.cantidad })),
+    };
+
+    const res = await fetch(`${API_URL}/api/pedidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'No se pudo generar pedido');
+
+    const msgCorreo = data.mailSent
+        ? 'Factura enviada al correo del usuario.'
+        : 'Pedido generado (correo no configurado o sin sesión).';
+    alert(`Pedido #${data.orderId} generado. Total: $${Number(data.total).toFixed(2)}. ${msgCorreo}`);
+
+    items = [];
+    renderDetalle();
+});
+
+renderDetalle();
+loadOptions();
+</script>
+
+</body>
+</html>

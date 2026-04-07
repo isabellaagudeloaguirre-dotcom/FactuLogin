@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Clientes</title>
+    <link rel="stylesheet" href="CSS/styles.css">
+</head>
+<body>
+
+<a href="menú.html" class="back-menu-btn">← Menú</a>
+
+<div class="container">
+    <div class="form">
+        <h2>Clientes</h2>
+
+        <!-- FORM -->
+        <div class="input-group">
+            <label>Nombre</label>
+            <input type="text" name="nombreCliente" id="nombreCliente">
+        </div>
+
+        <div class="input-group">
+            <label>Documento</label>
+            <input type="text" name="documentoCliente" id="documentoCliente">
+        </div>
+
+        <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" name="telefonoCliente" id="telefonoCliente">
+        </div>
+
+        <button id="saveClienteBtn">Guardar</button>
+
+        <hr style="margin:20px 0;">
+
+        <!-- TABLA -->
+        <table border="1" width="100%">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Documento</th>
+                    <th>Teléfono</th>
+                </tr>
+            </thead>
+            <tbody id="clientesBody"></tbody>
+        </table>
+        <p id="clientesEmpty" class="link">Aún no hay clientes</p>
+    </div>
+</div>
+
+<script>
+const API_URL = 'http://localhost:3000';
+const nombreInput = document.getElementById('nombreCliente');
+const documentoInput = document.getElementById('documentoCliente');
+const telefonoInput = document.getElementById('telefonoCliente');
+const saveBtn = document.getElementById('saveClienteBtn');
+const body = document.getElementById('clientesBody');
+const empty = document.getElementById('clientesEmpty');
+
+function renderClientes(rows) {
+    body.innerHTML = rows.map(r => `<tr><td>${r.name}</td><td>${r.document}</td><td>${r.phone}</td></tr>`).join('');
+    empty.style.display = rows.length ? 'none' : 'block';
+}
+
+async function loadClientes() {
+    const res = await fetch(`${API_URL}/api/clientes`);
+    const rows = await res.json();
+    renderClientes(rows);
+}
+
+saveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const payload = {
+        nombre: nombreInput.value.trim(),
+        documento: documentoInput.value.trim(),
+        telefono: telefonoInput.value.trim(),
+    };
+    const res = await fetch(`${API_URL}/api/clientes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'No se pudo guardar cliente');
+    nombreInput.value = '';
+    documentoInput.value = '';
+    telefonoInput.value = '';
+    loadClientes();
+});
+
+loadClientes();
+</script>
+
+</body>
+</html>

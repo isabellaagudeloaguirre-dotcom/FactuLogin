@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Menú</title>
+    <link rel="stylesheet" href="CSS/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <h2>Panel principal</h2>
+            <div class="topbar-actions">
+                <button id="notifBtn" class="icon-btn" title="Notificaciones">
+                    <i class="fa-regular fa-bell"></i>
+                    <span id="notifCount" class="notif-count">0</span>
+                </button>
+
+                <div class="user-box">
+                    <button id="userBtn" class="user-btn">
+                        <img id="profilePreview" class="profile-mini" alt="Perfil">
+                        <span id="userNameLabel">Mi cuenta</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div id="userDropdown" class="dropdown hidden">
+                        <p><strong id="dropdownUserName">Usuario</strong></p>
+                        <p id="dropdownUserEmail" class="muted-text">correo@demo.com</p>
+                        <hr>
+                        <label for="profileInput" class="menu-action">Cambiar foto de perfil</label>
+                        <input type="file" id="profileInput" accept="image/*">
+                        <button id="viewInvoicesBtn" class="menu-action">Consultar mis facturas</button>
+                        <button id="logoutBtn" class="menu-action danger">Desloguearme</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="notifPanel" class="panel hidden">
+            <h3>Notificaciones</h3>
+            <ul id="notifList"></ul>
+        </div>
+
+        <div id="invoicePanel" class="panel hidden">
+            <h3>Mis facturas</h3>
+            <ul id="invoiceList"></ul>
+        </div>
+
+        <div class="form">
+            <h2>Bienvenido</h2>
+            <p style="margin-bottom: 20px;">Selecciona una opción</p>
+
+            <div class="menu">
+                <a href="clientes.html" class="menu-btn">Clientes</a>
+                <a href="empresas.html" class="menu-btn">Empresas</a>
+                <a href="productos.html" class="menu-btn">Productos</a>
+                <a href="pedidos.html" class="menu-btn">Pedidos</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        const API_URL = 'http://localhost:3000';
+        const currentUser = JSON.parse(localStorage.getItem('factulogin_user') || 'null');
+        const userId = currentUser && currentUser.id ? currentUser.id : null;
+        const notifBtn = document.getElementById('notifBtn');
+        const notifPanel = document.getElementById('notifPanel');
+        const notifList = document.getElementById('notifList');
+        const notifCount = document.getElementById('notifCount');
+        const userBtn = document.getElementById('userBtn');
+        const userDropdown = document.getElementById('userDropdown');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const viewInvoicesBtn = document.getElementById('viewInvoicesBtn');
+        const invoicePanel = document.getElementById('invoicePanel');
+        const invoiceList = document.getElementById('invoiceList');
+        const profileInput = document.getElementById('profileInput');
+        const profilePreview = document.getElementById('profilePreview');
+        const userNameLabel = document.getElementById('userNameLabel');
+        const dropdownUserName = document.getElementById('dropdownUserName');
+        const dropdownUserEmail = document.getElementById('dropdownUserEmail');
+
+        function userPhoto(path) {
+            return path ? API_URL + path : 'https://via.placeholder.com/40x40.png?text=U';
+        }
+
+        async function loadDashboard() {
+            if (!userId) {
+                userNameLabel.textContent = 'Invitado';
+                dropdownUserName.textContent = 'Invitado';
+                dropdownUserEmail.textContent = 'Sin sesión activa';
+                profilePreview.src = userPhoto(null);
+                notifCount.textContent = '0';
+                notifList.innerHTML = '<li>Inicia sesión para ver notificaciones</li>';
+                invoiceList.innerHTML = '<li>Aún no hay recibos</li>';
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/api/users/${userId}/dashboard`);
+            const data = await res.json();
+
+            userNameLabel.textContent = data.user.name;
+            dropdownUserName.textContent = data.user.name;
+            dropdownUserEmail.textContent = data.user.email;
+            profilePreview.src = userPhoto(data.user.profileImage);
+
+            notifCount.textContent = data.notifications.length;
+            notifList.innerHTML = data.notifications.map(n => `<li>${n.message}</li>`).join('') || '<li>Sin notificaciones</li>';
+
+            invoiceList.innerHTML = data.invoices.map(f => `<li>#${f.id} - ${f.description} - $${f.total}</li>`).join('') || '<li>Aún no hay recibos</li>';
+        }
+
+        async function track(action, detail) {
+            if (!userId) return;
+            await fetch(`${API_URL}/api/users/${userId}/events`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, detail })
+            });
+        }
+
+        notifBtn.addEventListener('click', async () => {
+            notifPanel.classList.toggle('hidden');
+            invoicePanel.classList.add('hidden');
+            await track('open_notifications', 'El usuario abrió notificaciones');
+        });
+
+        userBtn.addEventListener('click', () => {
+            userDropdown.classList.toggle('hidden');
+        });
+
+        viewInvoicesBtn.addEventListener('click', async () => {
+            invoicePanel.classList.toggle('hidden');
+            notifPanel.classList.add('hidden');
+            await track('view_invoices', 'El usuario revisó sus facturas');
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            if (!userId) {
+                alert('No hay sesión activa');
+                return;
+            }
+            await track('logout', 'El usuario cerró sesión');
+            localStorage.removeItem('factulogin_user');
+            window.location.href = 'Login.html';
+        });
+
+        profileInput.addEventListener('change', async () => {
+            if (!userId) {
+                alert('Debes iniciar sesión para cambiar la foto');
+                profileInput.value = '';
+                return;
+            }
+            const file = profileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('profileImage', file);
+            const res = await fetch(`${API_URL}/api/users/${userId}/profile-photo`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            profilePreview.src = userPhoto(data.profileImage);
+            await track('profile_photo_changed', 'Actualizó foto de perfil');
+            alert('Foto de perfil actualizada');
+        });
+
+        loadDashboard();
+        track('open_menu', 'Entró al menú principal');
+    </script>
+</body>
+</html>

@@ -78,6 +78,7 @@
         const formRegister = document.getElementById('form-register');
         const goRegister = document.getElementById('go-register');
         const goLogin = document.getElementById('go-login');
+        const API_URL = 'http://localhost:3000';
 
         function showLogin() {
             tabLogin.classList.add('active');
@@ -97,55 +98,56 @@
         tabRegister.addEventListener('click', showRegister);
         goRegister.addEventListener('click', showRegister);
         goLogin.addEventListener('click', showLogin);
+
+        formLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const correo = document.getElementById('login-correo').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const res = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ correo, password })
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.ok) {
+                alert('Correo o contraseña incorrectos');
+                return;
+            }
+
+            localStorage.setItem('factulogin_user', JSON.stringify(data.user));
+            window.location.href = 'menú.html';
+        });
+
+        formRegister.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const correo = document.getElementById('reg-correo').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmar = document.getElementById('reg-confirmar').value;
+
+            if (password !== confirmar) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, correo, password })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || 'No se pudo registrar');
+                return;
+            }
+
+            alert('Registro exitoso, ahora inicia sesión');
+            showLogin();
+            formRegister.reset();
+        });
     </script>
-</body>
-</html>
-
-
-
-
-
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Registro</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-    <div class="container">
-        <form class="form">
-            <h2>Crear Cuenta</h2>
-
-            <div class="input-group">
-                <label>Nombre</label>
-                <input type="text" name="nombre" id="nombre" required>
-            </div>
-
-            <div class="input-group">
-                <label>Correo</label>
-                <input type="email" name="correo" id="correo" required>
-            </div>
-
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" name="password" id="password" required>
-            </div>
-
-            <div class="input-group">
-                <label>Confirmar Contraseña</label>
-                <input type="password" name="confirmarPassword" id="confirmarPassword" required>
-            </div>
-
-            <button type="submit">Registrarse</button>
-
-            <p class="link">
-                ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
-            </p>
-        </form>
-    </div>
-
 </body>
 </html>
