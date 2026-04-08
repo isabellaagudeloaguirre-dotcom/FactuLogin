@@ -50,6 +50,7 @@
 
 <script>
 const API_URL = 'http://localhost:3000';
+const SESSION_ACTIVE = Boolean(JSON.parse(localStorage.getItem('factulogin_user') || 'null')?.id);
 const nombreInput = document.getElementById('nombreProducto');
 const precioInput = document.getElementById('precioProducto');
 const empresaSelect = document.getElementById('empresaProducto');
@@ -94,8 +95,14 @@ saveBtn.addEventListener('click', async (e) => {
     loadProductos();
 });
 
-loadEmpresas();
-loadProductos();
+if (!SESSION_ACTIVE) {
+    [nombreInput, precioInput, empresaSelect, saveBtn].forEach(el => el.disabled = true);
+    empty.textContent = 'Inicia sesión para habilitar productos';
+    empty.style.display = 'block';
+} else {
+    loadEmpresas();
+    loadProductos();
+}
 </script>
 
 </body>

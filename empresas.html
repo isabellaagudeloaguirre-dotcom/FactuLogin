@@ -53,6 +53,7 @@
 
 <script>
 const API_URL = 'http://localhost:3000';
+const SESSION_ACTIVE = Boolean(JSON.parse(localStorage.getItem('factulogin_user') || 'null')?.id);
 const nombreInput = document.getElementById('nombreEmpresa');
 const nitInput = document.getElementById('nitEmpresa');
 const telefonoInput = document.getElementById('telefonoEmpresa');
@@ -94,7 +95,13 @@ saveBtn.addEventListener('click', async (e) => {
     loadEmpresas();
 });
 
-loadEmpresas();
+if (!SESSION_ACTIVE) {
+    [nombreInput, nitInput, telefonoInput, direccionInput, saveBtn].forEach(el => el.disabled = true);
+    empty.textContent = 'Inicia sesión para habilitar empresas';
+    empty.style.display = 'block';
+} else {
+    loadEmpresas();
+}
 </script>
 
 </body>

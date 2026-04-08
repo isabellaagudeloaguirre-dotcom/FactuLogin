@@ -61,6 +61,7 @@
         const API_URL = 'http://localhost:3000';
         const currentUser = JSON.parse(localStorage.getItem('factulogin_user') || 'null');
         const userId = currentUser && currentUser.id ? currentUser.id : null;
+        const SESSION_ACTIVE = Boolean(userId);
         const notifBtn = document.getElementById('notifBtn');
         const notifPanel = document.getElementById('notifPanel');
         const notifList = document.getElementById('notifList');
@@ -90,6 +91,9 @@
                 notifCount.textContent = '0';
                 notifList.innerHTML = '<li>Inicia sesión para ver notificaciones</li>';
                 invoiceList.innerHTML = '<li>Aún no hay recibos</li>';
+                notifBtn.disabled = true;
+                viewInvoicesBtn.disabled = true;
+                profileInput.disabled = true;
                 return;
             }
 
@@ -119,7 +123,9 @@
         notifBtn.addEventListener('click', async () => {
             notifPanel.classList.toggle('hidden');
             invoicePanel.classList.add('hidden');
-            await track('open_notifications', 'El usuario abrió notificaciones');
+            if (SESSION_ACTIVE) {
+                await track('open_notifications', 'El usuario abrió notificaciones');
+            }
         });
 
         userBtn.addEventListener('click', () => {
@@ -129,7 +135,9 @@
         viewInvoicesBtn.addEventListener('click', async () => {
             invoicePanel.classList.toggle('hidden');
             notifPanel.classList.add('hidden');
-            await track('view_invoices', 'El usuario revisó sus facturas');
+            if (SESSION_ACTIVE) {
+                await track('view_invoices', 'El usuario revisó sus facturas');
+            }
         });
 
         logoutBtn.addEventListener('click', async () => {
@@ -163,7 +171,9 @@
         });
 
         loadDashboard();
-        track('open_menu', 'Entró al menú principal');
+        if (SESSION_ACTIVE) {
+            track('open_menu', 'Entró al menú principal');
+        }
     </script>
 </body>
 </html>

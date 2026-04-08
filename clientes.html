@@ -50,6 +50,7 @@
 
 <script>
 const API_URL = 'http://localhost:3000';
+const SESSION_ACTIVE = Boolean(JSON.parse(localStorage.getItem('factulogin_user') || 'null')?.id);
 const nombreInput = document.getElementById('nombreCliente');
 const documentoInput = document.getElementById('documentoCliente');
 const telefonoInput = document.getElementById('telefonoCliente');
@@ -88,7 +89,13 @@ saveBtn.addEventListener('click', async (e) => {
     loadClientes();
 });
 
-loadClientes();
+if (!SESSION_ACTIVE) {
+    [nombreInput, documentoInput, telefonoInput, saveBtn].forEach(el => el.disabled = true);
+    empty.textContent = 'Inicia sesión para habilitar clientes';
+    empty.style.display = 'block';
+} else {
+    loadClientes();
+}
 </script>
 
 </body>

@@ -68,6 +68,7 @@
 <script>
 const API_URL = 'http://localhost:3000';
 const currentUser = JSON.parse(localStorage.getItem('factulogin_user') || 'null');
+const SESSION_ACTIVE = Boolean(currentUser && currentUser.id);
 
 const clienteSelect = document.getElementById('clientePedido');
 const empresaSelect = document.getElementById('empresaPedido');
@@ -170,7 +171,13 @@ generarBtn.addEventListener('click', async (e) => {
 });
 
 renderDetalle();
-loadOptions();
+if (!SESSION_ACTIVE) {
+    [clienteSelect, empresaSelect, productoSelect, cantidadInput, agregarBtn, generarBtn].forEach(el => el.disabled = true);
+    detalleEmpty.textContent = 'Inicia sesión para habilitar pedidos';
+    detalleEmpty.style.display = 'block';
+} else {
+    loadOptions();
+}
 </script>
 
 </body>
